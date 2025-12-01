@@ -1,0 +1,79 @@
+/*
+  cifra-xor.c
+  Cifra y descifra archivos usando XOR. La misma clave sirve para ambos.
+  
+  Compilar: gcc -o cifra-xor cifra-xor.c
+  Uso: ./cifra-xor archivo.txt clave123
+*/
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <string.h>
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        write(1, "Uso: ./cifra-xor <archivo> <clave>\n", 36);
+        return 1;
+    }
+    
+    char *archivo = argv[1];
+    char *clave = argv[2];
+    int clave_len = strlen(clave);
+    
+    if (clave_len == 0) {
+        write(2, "Error: clave vacia\n", 19);
+        return 1;
+    }
+    
+    struct stat info;
+    
+    // Verificar archivo
+    if (stat(archivo, &info) < 0) {
+        write(2, "Error: archivo no existe\n", 25);
+        return 1;
+    }
+    
+    if (!S_ISREG(info.st_mode)) {
+        write(2, "Error: no es archivo regular\n", 29);
+        return 1;
+    }
+    
+    // Abrir archivo
+    int fd = open(archivo, O_RDWR);
+    if (fd < 0) {
+        write(2, "Error: no se puede abrir\n", 25);
+        return 1;
+    }
+    
+    char buffer[4096];
+    off_t total = info.st_size;
+    off_t pos = 0;
+    int k = 0;  // posicion en clave
+    
+    write(1, "Procesando archivo...\n", 22);
+    
+    // Procesar archivo
+    while (pos < total) {
+        int chunk = (total - pos > 4096) ? 4096 : (total - pos);
+        int n = read(fd, buffer, chunk);
+        
+        if (n <= 0) break;
+        
+        // Aplicar XOR
+        for (int i = 0; i < n; i++) {
+            buffer[i] ^= clave[k];
+            k = (k + 1) % clave_len;
+        }
+        
+        lseek(fd, pos, SEEK_SET);
+        write(fd, buffer, n);
+        pos += n;
+    }
+    
+    fsync(fd);
+    close(fd);
+    
+    write(1, "Listo\n", 6);
+    return 0;
+}
