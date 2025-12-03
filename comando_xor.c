@@ -1,6 +1,5 @@
 /*
   cifra-xor.c
-  Cifra/descifra con XOR usando pipeline interno (fork + pipe).
   Compilar: gcc -o cifra-xor cifra-xor.c
   Uso: ./cifra-xor archivo.txt clave123
 */
